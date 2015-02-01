@@ -1,0 +1,32 @@
+<html> 
+	<body> 
+		<script src="Library/three.min.js"></script> 
+		<script> 
+			var scene = new THREE.Scene();
+			var height = 600;
+			var width = 800;
+			
+			var camera = new THREE.PerspectiveCamera( 75, width/height, 0.1, 1000 ); 
+			camera.position.z = 5; 
+			var renderer = new THREE.WebGLRenderer(); 
+			var geometry = new THREE.BoxGeometry( 2, 2, 2 ); 
+			var material = new THREE.MeshBasicMaterial( { color: 0xFF1D00 } ); 
+			var cube = new THREE.Mesh( geometry, material ); 
+			
+			//renderer size
+			renderer.setSize( width, height ); 
+			
+			//link renderer to html body
+			document.body.appendChild( renderer.domElement ); 
+			
+			//add cube to scene
+			scene.add( cube ); 
+			
+			//scene background color
+			renderer.setClearColor( 0xffffff, 1);
+			
+			//render scene
+			renderer.render(scene,camera);
+		</script> 
+	</body> 
+</html>
