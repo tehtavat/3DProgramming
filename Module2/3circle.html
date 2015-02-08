@@ -1,0 +1,181 @@
+<html>
+<head>
+    <script src="../Library/jquery-1.9.1.min.js"></script>
+    <script src="../Library/three.js"></script>
+    <script id="shader-vs" type="x-shader/x-vertex">
+        attribute vec3 aVertexPosition;
+        uniform mat4 uPMatrix;
+
+        void main(void) {
+            gl_PointSize = 5.0;
+            gl_Position = uPMatrix * vec4(aVertexPosition, 1.0);
+        }
+    </script>
+    <script id="shader-fs" type="x-shader/x-fragment">
+
+        void main(void)
+        {					//Triangle Color
+            gl_FragColor = vec4(0.0, 0.5, 0.0, 1.0);
+        }
+    </script>
+    <script type="text/javascript">
+        var gl = null,
+        canvas = null,
+        glProgram = null,
+        fragmentShader = null,
+        vertexShader = null;
+        var vertexPositionAttribute = null,
+        trianglesVerticeBuffer = null;
+        var circleShader = null;
+        var pMatrix = new THREE.Matrix4();
+        var pMatrixtemp = new THREE.Matrix4();
+        function initWebGL() {
+            canvas = document.getElementById("my-canvas");
+            try {
+                gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+            }
+            catch (e) { }
+            if (gl) {
+
+                setupWebGL();
+                initShaders();
+
+                pMatrixtemp.makeOrthographic(0, canvas.width, 0, canvas.height, -1, 1);
+                pMatrix = pMatrixtemp.elements;
+                setupBuffers();
+                drawScene();
+            }
+            else {
+                alert("Error: Your browser does not appear to" + "support WebGL.");
+            }
+        }
+        function setupWebGL() {
+            gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+        function initShaders() {
+            //get shader source
+            var fs_source = document.getElementById('shader-fs').innerHTML,
+            vs_source = document.getElementById('shader-vs').innerHTML;
+            //compiles shaders
+            vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+            fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+
+            //create program
+            glProgram = gl.createProgram();
+
+            //attach shaders to the program
+            gl.attachShader(glProgram, vertexShader);
+            gl.attachShader(glProgram, fragmentShader);
+
+            //links shaders to the program
+            gl.linkProgram(glProgram);
+
+            //checks if linking failed
+            if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+                alert("Unable to initialize the shader program.");
+            }
+
+            //use program
+            gl.useProgram(glProgram);
+
+
+            glProgram.vertexPositionLoc = gl.getAttribLocation(glProgram, "aVertexPosition");
+            gl.enableVertexAttribArray(glProgram.vertexPositionLoc);
+
+            glProgram.pMatrixLoc = gl.getUniformLocation(glProgram, "uPMatrix");
+        }
+        function makeShader(src, type) {
+            //compile the vertex shader
+            var shader = gl.createShader(type);
+            gl.shaderSource(shader, src);
+            gl.compileShader(shader);
+
+            //checks if compile failed
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
+            }
+            return shader;
+        }
+        var canvasHeight = 0, canvasWidth;
+        function setupBuffers() {
+
+            canvasHeight = document.getElementById("my-canvas").height;
+            canvasWidth = document.getElementById("my-canvas").width;
+            var centerX = canvasWidth /2;
+            var centerY = canvasHeight / 2;
+            var radius = 60;
+            var points = [];
+            // an array to save your points
+            if (circleShader == "POINTS")
+            {
+                for (var degree = 0; degree < 360; degree = degree + 30) {
+                    var radians = degree * Math.PI / 180;
+                    var x = centerX + radius * Math.cos(radians);
+                    var y = centerY + radius * Math.sin(radians);
+                    var z = 0;
+                    points.push(x, y, z);
+                }
+            }
+            else
+            {
+                for (var degree = 0; degree < 360; degree++) {
+                    var radians = degree * Math.PI / 180;
+                    var x = centerX + radius * Math.cos(radians);
+                    var y = centerY + radius * Math.sin(radians);
+                    var z = 0;
+                    points.push(x, y, z);
+                }
+            }
+            trianglesVerticeBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(points), gl.STATIC_DRAW);
+
+            trianglesVerticeBuffer.itemSize = 3;
+            trianglesVerticeBuffer.numItems = points.length / 3;
+        }
+        var indices = [];
+        function drawScene() {
+
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.clear(gl.DEPTH_BUFFER_BIT);
+            
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+            gl.vertexAttribPointer(glProgram.vertexPositionLoc, trianglesVerticeBuffer.itemSize, gl.FLOAT, false, 0, 0);
+            gl.uniformMatrix4fv(glProgram.pMatrixLoc, 0, pMatrix);
+
+            if (circleShader == "TRIANGLE_FAN")
+                gl.drawArrays(gl.TRIANGLE_FAN, 0, trianglesVerticeBuffer.numItems);
+            else if (circleShader == "LINE_LOOP")
+                gl.drawArrays(gl.LINE_LOOP, 0, trianglesVerticeBuffer.numItems);
+            else if (circleShader == "POINTS")
+                gl.drawArrays(gl.POINTS, 0, trianglesVerticeBuffer.numItems);
+            else
+            {
+                document.getElementById("TRIANGLE_FAN").checked = true;
+                gl.drawArrays(gl.TRIANGLE_FAN, 0, trianglesVerticeBuffer.numItems);
+            }
+                
+        }
+        function objecttype(otype) {
+            circleShader = otype;
+            setupBuffers();
+            drawScene();
+        }
+
+    </script>
+
+</head>
+<body onload="initWebGL()">
+
+    <form>
+        Polygon: <input type="radio" id="TRIANGLE_FAN" name="outcome" onclick="objecttype('TRIANGLE_FAN');" checked /><br />
+        Line loop: <input type="radio" id="LINE_LOOP" name="outcome" onclick="objecttype('LINE_LOOP');" /><br />
+        Point srites: <input type="radio" id="POINTS" name="outcome" onclick="objecttype('POINTS');" />
+
+    </form>
+    <br />
+    <canvas id="my-canvas" width="400" height="200"></canvas>
+</body>
+</html>
