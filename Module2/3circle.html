@@ -17,8 +17,10 @@
         }
     </script>
     <script id="shader-fs" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec2 canvastocolor;
         void main() {
-            gl_FragColor = vec4(gl_FragCoord.x / 70.0, gl_FragCoord.y / 400.0, 0.4, 1);
+            gl_FragColor = vec4(gl_FragCoord.x / canvastocolor.x, gl_FragCoord.y / canvastocolor.y, 0.5, 1);
         }
     </script>
     <script type="text/javascript">
@@ -32,6 +34,7 @@
         var circleShader = null;
         var pMatrix = new THREE.Matrix4();
         var pMatrixtemp = new THREE.Matrix4();
+        
         function initWebGL() {
             canvas = document.getElementById("my-canvas");
             try {
@@ -40,11 +43,17 @@
             catch (e) { }
             if (gl) {
 
+
                 setupWebGL();
                 initShaders();
 
                 pMatrixtemp.makeOrthographic(0, canvas.width, 0, canvas.height, -1, 1);
                 pMatrix = pMatrixtemp.elements;
+
+                canvastocolor = gl.getUniformLocation(glProgram, "canvastocolor");
+                gl.uniform2f(canvastocolor, canvas.width, canvas.height);
+                colorheight = canvas.height;
+                colorwidth = canvas.width;
                 setupBuffers();
                 drawScene();
             }
@@ -109,6 +118,7 @@
             var centerY = canvasHeight / 2;
             var radius = 90;
             var points = [];
+
             // an array to save your points
             if (circleShader == "POINTS")
             {
@@ -128,6 +138,7 @@
                     var y = centerY + radius * Math.sin(radians);
                     var z = 0;
                     points.push(x, y, z);
+
                 }
             }
             trianglesVerticeBuffer = gl.createBuffer();
