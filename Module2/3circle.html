@@ -6,14 +6,11 @@
         
         attribute vec3 aVertexPosition;
         uniform mat4 uPMatrix;
-        attribute vec4 aVertexColor;
-        varying lowp vec4 vColor;
-
+        
         void main(void) {
             gl_PointSize = 5.0;
             
             gl_Position = uPMatrix * vec4(aVertexPosition, 1.0);
-            vColor = aVertexColor;
         }
     </script>
     <script id="shader-fs" type="x-shader/x-fragment">
