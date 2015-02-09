@@ -3,19 +3,22 @@
     <script src="../Library/jquery-1.9.1.min.js"></script>
     <script src="../Library/three.js"></script>
     <script id="shader-vs" type="x-shader/x-vertex">
+        
         attribute vec3 aVertexPosition;
         uniform mat4 uPMatrix;
+        attribute vec4 aVertexColor;
+        varying lowp vec4 vColor;
 
         void main(void) {
             gl_PointSize = 5.0;
+            
             gl_Position = uPMatrix * vec4(aVertexPosition, 1.0);
+            vColor = aVertexColor;
         }
     </script>
     <script id="shader-fs" type="x-shader/x-fragment">
-
-        void main(void)
-        {					//Triangle Color
-            gl_FragColor = vec4(0.0, 0.5, 0.0, 1.0);
+        void main() {
+            gl_FragColor = vec4(gl_FragCoord.x / 70.0, gl_FragCoord.y / 400.0, 0.4, 1);
         }
     </script>
     <script type="text/javascript">
@@ -104,7 +107,7 @@
             canvasWidth = document.getElementById("my-canvas").width;
             var centerX = canvasWidth /2;
             var centerY = canvasHeight / 2;
-            var radius = 60;
+            var radius = 90;
             var points = [];
             // an array to save your points
             if (circleShader == "POINTS")
@@ -144,7 +147,8 @@
             gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
             gl.vertexAttribPointer(glProgram.vertexPositionLoc, trianglesVerticeBuffer.itemSize, gl.FLOAT, false, 0, 0);
             gl.uniformMatrix4fv(glProgram.pMatrixLoc, 0, pMatrix);
-
+            //Doesn't work
+            //gl.lineWidth(3.0);
             if (circleShader == "TRIANGLE_FAN")
                 gl.drawArrays(gl.TRIANGLE_FAN, 0, trianglesVerticeBuffer.numItems);
             else if (circleShader == "LINE_LOOP")
@@ -165,7 +169,12 @@
         }
 
     </script>
-
+    <style>
+        canvas
+        {
+            background-color:black;
+        }
+    </style>
 </head>
 <body onload="initWebGL()">
 
@@ -176,6 +185,6 @@
 
     </form>
     <br />
-    <canvas id="my-canvas" width="400" height="200"></canvas>
+    <canvas id="my-canvas" width="400" height="400" background-color="black"></canvas>
 </body>
 </html>
