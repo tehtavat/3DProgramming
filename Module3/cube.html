@@ -1,0 +1,79 @@
+﻿<html>
+<body>
+    <script src="../Library/three.min.js"></script>
+    <script>
+        // create skybox mesh
+        var scene = new THREE.Scene();
+        var height = 600;
+        var width = 800;
+
+        var camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 100000);
+        camera.position.z = 5;
+        var renderer = new THREE.WebGLRenderer();
+        var geometry = new THREE.BoxGeometry(100, 100, 100);
+
+
+        var urlPrefix = "Texture/";
+        var urls = [urlPrefix + "posx.jpg", urlPrefix + "negx.jpg",
+            urlPrefix + "posy.jpg", urlPrefix + "negy.jpg",
+            urlPrefix + "posz.jpg", urlPrefix + "negz.jpg"];
+        var material = new THREE.MeshFaceMaterial([
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(urls[0], {}, function () { renderer.render(scene, camera); }) }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(urls[1], {}, function () { renderer.render(scene, camera); }) }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(urls[2], {}, function () { renderer.render(scene, camera); }) }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(urls[3], {}, function () { renderer.render(scene, camera); }) }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(urls[4], {}, function () { renderer.render(scene, camera); }) }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(urls[5], {}, function () { renderer.render(scene, camera); }) })
+        ]);
+
+        var cube = new THREE.Mesh(geometry, material);
+        
+        var path = 'Texture/';
+        var sides = [path + 'posx.jpg', path + 'negx.jpg',
+                     path + 'posy.jpg', path + 'negy.jpg',
+                     path + 'posz.jpg', path + 'negz.jpg'];
+        var scCube = THREE.ImageUtils.loadTextureCube(sides);
+        scCube.format = THREE.RGBFormat; 	 
+        // prepare skybox material (shader)
+        var skyShader = THREE.ShaderLib["cube"];
+        skyShader.uniforms["tCube"].value = scCube;
+        var skyMaterial = new THREE.ShaderMaterial( {
+            fragmentShader: skyShader.fragmentShader, vertexShader: skyShader.vertexShader,
+            uniforms: skyShader.uniforms, depthWrite: false, side: THREE.BackSide
+        });
+        // create Mesh with cube geometry and add to the scene
+        var skyBox = new THREE.Mesh(new THREE.BoxGeometry(50000, 50000, 50000), skyMaterial);
+        skyMaterial.needsUpdate = true;
+        this.scene.add(skyBox);
+
+        //renderer size
+        renderer.setSize(width, height);
+
+        //link renderer to html body
+        document.body.appendChild(renderer.domElement);
+
+        //add cube to scene
+        //scene.add(cube);
+
+        //scene background color
+        renderer.setClearColor(0xffffff, 1);
+        
+
+        animate();
+        var rotator = 0;
+        var timer;
+        function animate()
+        {
+            requestAnimationFrame(animate);
+            camera.lookAt(scene.position);
+            timer = new Date().getTime() * 0.0005;
+            rotator = rotator + 0.01;
+            camera.position.x = Math.floor(Math.cos(rotator) * 200);
+            camera.position.y = Math.floor(Math.sin(rotator) * 200);
+            camera.position.z = Math.floor(Math.sin(rotator) * 200);
+            //render scene
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
