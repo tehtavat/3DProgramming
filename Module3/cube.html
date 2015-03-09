@@ -25,9 +25,10 @@
             uniforms: skyShader.uniforms, depthWrite: false, side: THREE.BackSide
         });
 
-        var skyBox = new THREE.Mesh(new THREE.BoxGeometry(50000, 50000, 50000), skyMaterial);
+        var skyBox = new THREE.Mesh(new THREE.BoxGeometry(100000, 100000, 100000), skyMaterial);
 
-        this.scene.add(skyBox);
+        scene.add(skyBox);
+
 
         //renderer size
         renderer.setSize(width, height);
