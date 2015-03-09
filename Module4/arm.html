@@ -1,0 +1,124 @@
+﻿<html>
+<body>
+    <script src="../Library/three.min.js"></script>
+    <script>
+        var scene = new THREE.Scene();
+        var height = 600;
+        var width = 800;
+
+        var camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 10000);
+        camera.position.z = 900;
+        var renderer = new THREE.WebGLRenderer();
+
+        //arm
+        var arm = new THREE.Object3D();
+        
+
+        //Shoulder: sphere
+        var geometry = new THREE.SphereGeometry(100, 100, 100);
+        var material = new THREE.MeshBasicMaterial({ color: 0xFF1D00 });
+        var Shoulder = new THREE.Mesh(geometry, material);
+ 
+        //upper arm: cube
+        var geometry = new THREE.BoxGeometry(100, 400, 50);
+        var material = new THREE.MeshBasicMaterial({ color: 0x11FF15 });
+        var Upper_Arm = new THREE.Mesh(geometry, material);
+        
+        //elbow: sphere
+        var geometry = new THREE.SphereGeometry(100, 100, 100);
+        var material = new THREE.MeshBasicMaterial({ color: 0xFA00FF });
+        var Elbow = new THREE.Mesh(geometry, material);
+
+        //lower: cube
+        var geometry = new THREE.BoxGeometry(98, 300, 50);
+        var material = new THREE.MeshBasicMaterial({ color: 0xFFFF00 });
+        var Lower_arm = new THREE.Mesh(geometry, material);
+
+        //hand: cube:
+        var geometry = new THREE.BoxGeometry(110, 150, 110);
+        var material = new THREE.MeshBasicMaterial({ color: 0x0011FF });
+        var Hand = new THREE.Mesh(geometry, material);
+
+        //fingers: cube (thumb + three others)
+        var geometry = new THREE.BoxGeometry(20, 100, 20);
+        var material = new THREE.MeshBasicMaterial({ color: 0xFFB27F });
+        var Finger1 = new THREE.Mesh(geometry, material);
+
+        var geometry = new THREE.BoxGeometry(20, 100, 20);
+        var material = new THREE.MeshBasicMaterial({ color: 0xFFB27F });
+        var Finger2 = new THREE.Mesh(geometry, material);
+
+        var geometry = new THREE.BoxGeometry(20, 100, 20);
+        var material = new THREE.MeshBasicMaterial({ color: 0xFFB27F });
+        var Finger3 = new THREE.Mesh(geometry, material);
+
+        var geometry = new THREE.BoxGeometry(20, 100, 20);
+        var material = new THREE.MeshBasicMaterial({ color: 0xFFB27F });
+        var Thumb = new THREE.Mesh(geometry, material);
+
+
+        Shoulder.position.set(100, -500, 10);
+        Upper_Arm.position.set(0, 250, 0);
+        Elbow.position.set(0, 200, 0);
+        Lower_arm.position.set(0, 200, 0);
+        Hand.position.set(0, 200, 1, 20);
+        Finger1.position.set(-35, 100, 0);
+        Finger2.position.set(0, 100, 0);
+        Finger3.position.set(35, 100, 0);
+        Thumb.position.set(80, 10, 0);
+        Thumb.rotateZ(30);
+
+        arm.add(Shoulder);
+        Shoulder.add(Upper_Arm);
+        Upper_Arm.add(Elbow);
+        Elbow.add(Lower_arm);
+        Lower_arm.add(Hand);
+        Hand.add(Finger1);
+        Hand.add(Finger2);
+        Hand.add(Finger3);
+        Hand.add(Thumb);
+
+        Shoulder.rotation.z = 40 * (Math.PI / 180);
+        Hand.rotation.x = -25 * (Math.PI / 180);
+        console.log(Shoulder.rotation.z);
+        console.log(Shoulder.rotation.z -= 0.5 * (Math.PI / 180));
+        //renderer size
+        renderer.setSize(width, height);
+
+        //link renderer to html body
+        document.body.appendChild(renderer.domElement);
+
+        camera.lookAt(arm.position);
+        scene.add(arm);
+
+        //scene background color
+        renderer.setClearColor(0xffffff, 1);
+        animate();
+        var timer;
+        var clockwise = true;
+        function animate() {
+            requestAnimationFrame(animate);
+            if (Shoulder.rotation.z >= 40 * (Math.PI / 180))
+                clockwise = true;
+            else if (Shoulder.rotation.z <= -40 * (Math.PI / 180))
+                clockwise = false;
+            else
+                true;
+            if (clockwise)
+            {
+                Shoulder.rotation.z -= 0.5 * (Math.PI / 180);
+                Hand.rotation.x += 0.5 * (Math.PI / 180);
+            }
+            else
+            {
+                Shoulder.rotation.z += 0.5 * (Math.PI / 180);
+                Hand.rotation.x -= 0.5 * (Math.PI / 180);
+            }
+                
+            //render scene
+            renderer.render(scene, camera);
+        }
+        
+    </script>
+</body>
+</html>
