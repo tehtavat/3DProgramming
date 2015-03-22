@@ -28,7 +28,7 @@
         var skyBox = new THREE.Mesh(new THREE.BoxGeometry(100000, 100000, 100000), skyMaterial);
 
         scene.add(skyBox);
-
+        
 
         //renderer size
         renderer.setSize(width, height);
@@ -39,7 +39,6 @@
         //scene background color
         renderer.setClearColor(0xffffff, 1);
         
-
         animate();
         var rotator = 0;
         var timer;
@@ -50,6 +49,7 @@
             timer = new Date().getTime() * 0.0005;
             rotator = rotator + 0.01;
             //rotate camera
+            
             camera.position.x = Math.floor(Math.cos(rotator) * 200);
             camera.position.y = Math.floor(Math.sin(rotator) * 200);
             camera.position.z = Math.floor(Math.sin(rotator) * 200);
