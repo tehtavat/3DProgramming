@@ -26,28 +26,31 @@
         camera.position.y = 1.2;
         camera.position.z = 50;
         var renderer = new THREE.WebGLRenderer();
-        var skydome = {
-            scene: new THREE.Scene(),
-            camera: new THREE.PerspectiveCamera(viewAngle, aspect, near, far)
-        };
 
+        var path = "nightsky/";
+        var format = '.png';
+        var urls = [
+        path + 'nightsky_west' + format, path + 'nightsky_east' + format,
+        path + 'nightsky_up' + format, path + 'nightsky_down' + format,
+        path + 'nightsky_north' + format, path + 'nightsky_south' + format
+        ];
+        var reflectionCube = THREE.ImageUtils.loadTextureCube(urls);
+        reflectionCube.format = THREE.RGBFormat;
+        var refractionCube = new THREE.CubeTexture(reflectionCube.image, THREE.CubeRefractionMapping);
+        refractionCube.format = THREE.RGBFormat;
 
-        var path = './nightsky/';
-        var sides = [path + 'nightsky_west.png', path + 'nightsky_east.png',
-                     path + 'nightsky_up.png', path + 'nightsky_down.png',
-                     path + 'nightsky_north.png', path + 'nightsky_south.png'];
-        var texturecube = THREE.ImageUtils.loadTextureCube(sides);
-        texturecube.format = THREE.RGBFormat;
-
-        var skyShader = THREE.ShaderLib["cube"];
-        skyShader.uniforms["tCube"].value = texturecube;
-        skydome.material = new THREE.ShaderMaterial({
-            fragmentShader: skyShader.fragmentShader, vertexShader: skyShader.vertexShader,
-            uniforms: skyShader.uniforms, depthWrite: false, side: THREE.BackSide
-        });
-
-        skydome.mesh = new THREE.Mesh(new THREE.BoxGeometry(10000, 10000, 10000), skydome.material);
-        skydome.scene.add(skydome.mesh);
+        // Skybox
+        var shader = THREE.ShaderLib["cube"];
+        shader.uniforms["tCube"].value = reflectionCube;
+        var material = new THREE.ShaderMaterial({
+            fragmentShader: shader.fragmentShader,
+            vertexShader: shader.vertexShader,
+            uniforms: shader.uniforms,
+            depthWrite: false,
+            side: THREE.BackSide
+        }),
+        mesh3 = new THREE.Mesh(new THREE.BoxGeometry(5000, 5000, 5000), material);
+        scene.add(mesh3);
 
         //renderer size
         renderer.setSize(width, height);
@@ -187,8 +190,6 @@
              
             renderer.setClearColor(0x000000, 1.0);
             renderer.clear(true);
-            skydome.camera.quaternion = camera.quaternion;
-            renderer.render(skydome.scene, skydome.camera); //first render the skydome
             renderer.render(scene, camera);
             moving = false;
             if (camera.position.y <= ground.position.y + 1)

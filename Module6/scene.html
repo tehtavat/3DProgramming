@@ -1,0 +1,545 @@
+﻿<html>
+<body>
+    <script src="../Library/three.js"></script>
+    <script src="../Library/OrbitControls.js"></script>
+    <script src="../Library/DDSLoader.js"></script>
+    <script src="../Library/MTLLoader.js"></script>
+    <script src="../Library/OBJLoader.js"></script>
+    <script src="../Library/OBJMTLLoader.js"></script>
+    <script src="../Library/jquery-1.9.1.min.js"></script>
+    <script src="../Library/ALLoader.js"></script>
+    <script src="../Library/Detector.js"></script>
+    <script>
+        // Parameters
+        var width = 800,
+        height = 600
+        viewAngle = 45,
+        aspect = width / height,
+        near = 0.1,
+        far = 1000.0;
+        var groundwidth = 100, groundheight = 0.2, grounddepth = 100;
+        var ruins = [];
+        var renderer = null;
+        var scene = null;
+        var mouse = {
+            down: false,
+            prevY: 0,
+            prevX: 0
+        }
+        var keysPressed = [];
+        var scene = new THREE.Scene();
+
+        var camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 100000);
+        var camera2 = new THREE.PerspectiveCamera(75, width / height, 0.1, 100000);
+
+        var backgroundscene = new THREE.Scene();
+        backgroundscene.add(camera2);
+        var cameraObject = new THREE.Object3D();
+        cameraObject.add(camera);
+        scene.add(cameraObject);
+
+        cameraObject.position.y = 1.2;
+        cameraObject.position.z = 20;
+
+        var renderer = new THREE.WebGLRenderer();
+        var flashlight = new THREE.Mesh();
+        
+        var path = "texture/nightsky/";
+        var format = '.png';
+        var urls = [
+        path + 'nightsky_west' + format, path + 'nightsky_east' + format,
+        path + 'nightsky_up' + format, path + 'nightsky_down' + format,
+        path + 'nightsky_north' + format, path + 'nightsky_south' + format
+        ];
+        var reflectionCube = THREE.ImageUtils.loadTextureCube(urls);
+        reflectionCube.format = THREE.RGBFormat;
+        var refractionCube = new THREE.CubeTexture(reflectionCube.image, THREE.CubeRefractionMapping);
+        refractionCube.format = THREE.RGBFormat;
+
+        // Skybox
+        var shader = THREE.ShaderLib["cube"];
+        shader.uniforms["tCube"].value = reflectionCube;
+        var material = new THREE.ShaderMaterial({
+            fragmentShader: shader.fragmentShader,
+            vertexShader: shader.vertexShader,
+            uniforms: shader.uniforms,
+            depthWrite: false,
+            
+            side: THREE.BackSide
+        }),
+        sky = new THREE.Mesh(new THREE.BoxGeometry(5000, 5000, 5000), material);
+        scene.add(sky);
+        //hills for more realistic clouds
+        /*
+        var path = "texture/hills/";
+        var format = '.png';
+        var cubematerial = [
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'hills_west' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'hills_east' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'transparent' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'transparent' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'hills_north' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'hills_south' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true })
+        ];
+        
+        var hills = new THREE.Mesh(new THREE.BoxGeometry(1000, 1000, 1000, 1, 1, 1), new THREE.MeshFaceMaterial(cubematerial));
+        scene.add(hills);
+        */
+                                                                    
+        var cloudTexture = new THREE.ImageUtils.loadTexture('texture/clouds.png');
+        var cloudMaterial = new THREE.MeshBasicMaterial({ map: cloudTexture, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, transparent: true });
+        //realistic clouds use clouds2.png and this geometry
+        //var cloudGeometry = new THREE.SphereGeometry(5000, 290, 290);
+        var cloudGeometry = new THREE.CylinderGeometry(800, 800, 2, 800, 2);
+        var cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+        cloud.position.setY(300);
+        scene.add(cloud);
+
+
+        var onProgress = function (xhr) {
+            if (xhr.lengthComputable) {
+                var percentComplete = xhr.loaded / xhr.total * 100;
+                console.log(Math.round(percentComplete, 2) + '% downloaded');
+            }
+        };
+
+        var onError = function (xhr) {
+        };
+        //var loader = new THREE.OBJLoader();
+        var OBJMTLloader = new THREE.OBJMTLLoader();
+        var campfireSize = new THREE.Box3();
+        OBJMTLloader.load('./meshes/campfire/Campfire_v2.obj', './meshes/campfire/Campfire_v2.mtl', function (object) {
+
+            object.position.z = 0;
+            object.position.x = 0;
+            object.position.y = 0;
+            object.scale.set(0.03, 0.03, 0.03);
+            scene.add(object);
+            campfireSize.setFromObject(object);
+            object.renderDepth = 60;
+        }, onProgress, onError);
+
+
+
+        /*var PointLight = new THREE.PointLight(0xffffff, 2, 30);
+        PointLight.position = flashlight.position;
+        PointLight.lookAt(new THREE.Vector3(cameraObject.position.x, cameraObject.position.y, cameraObject.position.z - 4));
+        cameraObject.add(PointLight);
+        */
+        var SpotLight = new THREE.SpotLight(0xffffff, 6, 30);
+        SpotLight.position.set(flashlight.position.x,flashlight.position.y,flashlight.position.z);
+        camera.add(SpotLight.target);
+        SpotLight.target.position.set(0, 0, -1);
+        SpotLight.position.copy(camera.position);
+        //SpotLight.lookAt(new THREE.Vector3(cameraObject.position.x, cameraObject.position.y, cameraObject.position.z + 30));
+        
+        cameraObject.add(SpotLight);
+        
+        var loader2 = new THREE.JSONLoader();
+        var houseMaterial = new THREE.MeshFaceMaterial();
+        var housePosition = new THREE.Vector3();
+        var houseSize = new THREE.Box3();
+        loader2.load("./meshes/house/house.js", function (geometry, materials) {
+            houseMaterial = new THREE.MeshFaceMaterial(materials);
+            mesh = new THREE.Mesh(geometry, houseMaterial);
+            mesh.position.z = -30;
+            mesh.position.x = 10;
+            mesh.scale.set(0.4, 0.4, 0.4);
+            housePosition = mesh.position;
+            houseSize.setFromObject(mesh);
+            scene.add(mesh);
+            mesh.renderDepth = 50;
+        });
+        
+        loader2.load("./meshes/flashlight/flashlight.js", function (geometry, materials) {
+            var material = new THREE.MeshFaceMaterial(materials);
+            flashlight = new THREE.Mesh(geometry, material);
+            flashlight.rotation.x = degInRad(-90);
+            flashlight.scale.set(0.02, 0.02, 0.02);
+            scene.add(flashlight);
+            cameraObject.add(flashlight);
+        });
+
+
+        
+        //renderer size
+        renderer.setSize(width, height);
+
+        //link renderer to html body
+        document.body.appendChild(renderer.domElement);
+
+        //scene background color
+        renderer.setClearColor(0xffffff, 1);
+
+
+        var texture = THREE.ImageUtils.loadTexture("texture/rock.jpg");
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(50, 50);
+
+        var groundmaterial = new THREE.MeshPhongMaterial({ map: texture });
+
+        // Construct a mesh object
+        var ground = new THREE.Mesh(new THREE.BoxGeometry(groundwidth, groundheight, grounddepth, 1, 1, 1), groundmaterial);
+
+        scene.add(ground);
+
+                
+        // request frame update and call update-function once it comes
+        requestAnimationFrame(update);
+
+        ////////////////////
+        // setup input handling with keypresses
+        document.onkeydown = function (event) {
+            keysPressed[event.keyCode] = true;
+        }
+        document.onkeyup = function (event) {
+            keysPressed[event.keyCode] = false;
+        }
+        // querying supported extensions
+        var gl = renderer.context;
+        var supported = gl.getSupportedExtensions();
+
+
+        var angle = 2.0;
+        var movement = 0.0;
+        var speed = 0.4;
+        var lightspeedY = 0.1;
+        var lightspeedX = 0.3;
+        var moving = false;
+
+
+        function degInRad(degree) {
+            var radians;
+            radians = degree * (3.14159265359 / 180)
+            return radians;
+        }
+
+
+        var texture2 = THREE.ImageUtils.loadTexture("./texture/rock.jpg");
+        var material1 = new THREE.MeshPhongMaterial({ map: texture2, transparent: true});
+
+        var moontexture = THREE.ImageUtils.loadTexture("./texture/moon.png");
+        var moonmaterial = new THREE.MeshBasicMaterial({ map: moontexture });
+
+        var box = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), material1);
+        var boxsize = new THREE.Box3().setFromObject(box);
+        box.position.x = 10;
+        box.position.y = 2;
+        //scene.add(box);
+
+        var moon = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 16), moonmaterial);
+        var moonz = moon.position.z = 0;
+        var moonx = moon.position.x = -400;
+        var moony = moon.position.y = 0;
+        scene.add(moon);
+
+        var suntexture = THREE.ImageUtils.loadTexture("./texture/sun.png");
+        var sunmaterial = new THREE.MeshBasicMaterial({ map: suntexture });
+
+        var sun = new THREE.Mesh(new THREE.SphereGeometry(5, 32, 16), sunmaterial);
+        var sunz = sun.position.z = 0;
+        var sunx = sun.position.x = 400;
+        var suny = sun.position.y = 0;
+        scene.add(sun);
+        /*
+        var rotationspeed = 1;
+        var moonrotation = new THREE.OrbitControls(moon);
+        moonrotation.autoRotate = true;
+        moonrotation.autoRotateSpeed = [rotationspeed];
+
+        var moonlightrotation = new THREE.OrbitControls(directlight);
+        moonlightrotation.autoRotate = true;
+        moonlightrotation.autoRotateSpeed = [rotationspeed];
+        */
+
+        var moonlight = new THREE.DirectionalLight(0xffffff, 1);
+        moonlight.position.set(moonx, moony, moonz);
+        scene.add(moonlight);
+
+        var sunlight = new THREE.DirectionalLight(0xffffff, 1);
+        sunlight.position.set(sunx, suny, sunz);
+        scene.add(sunlight);
+
+        var ambiantlight = new THREE.AmbientLight(0xffffff);
+        var ambiantspeed = 0.0;
+        scene.add(ambiantlight);
+
+        
+        
+        var campfirelight = new THREE.DirectionalLight(0xffffff,0.5);
+        scene.add(campfirelight);
+        
+       
+        var theta = 0.003;
+        var cx = 0;
+        var cy = 0;
+        rad = 200; // radius of circle
+
+        speed2 = 40; // speed of travel (seconds to make a complete circuit)
+        speedScale = (0.001 * 2 * Math.PI) / speed2;
+
+
+        function TextureAnimator(texture, tilesHoriz, tilesVert, numTiles, tileDispDuration) {
+            // note: texture passed by reference, will be updated by the update function.
+
+            this.tilesHorizontal = tilesHoriz;
+            this.tilesVertical = tilesVert;
+            // how many images does this spritesheet contain?
+            //  usually equals tilesHoriz * tilesVert, but not necessarily,
+            //  if there at blank tiles at the bottom of the spritesheet. 
+            this.numberOfTiles = numTiles;
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(1 / this.tilesHorizontal, 1 / this.tilesVertical);
+
+            // how long should each image be displayed?
+            this.tileDisplayDuration = tileDispDuration;
+
+            // how long has the current image been displayed?
+            this.currentDisplayTime = 0;
+
+            // which image is currently being displayed?
+            this.currentTile = 0;
+
+            this.update = function (milliSec) {
+                this.currentDisplayTime += milliSec;
+                while (this.currentDisplayTime > this.tileDisplayDuration) {
+                    this.currentDisplayTime -= this.tileDisplayDuration;
+                    this.currentTile++;
+                    if (this.currentTile == this.numberOfTiles)
+                        this.currentTile = 0;
+                    var currentColumn = this.currentTile % this.tilesHorizontal;
+                    texture.offset.x = currentColumn / this.tilesHorizontal;
+                    var currentRow = Math.floor(this.currentTile / this.tilesHorizontal);
+                    texture.offset.y = currentRow / this.tilesVertical;
+                }
+            };
+        }
+
+        var clock = new THREE.Clock();
+
+        var fireTexture = new THREE.ImageUtils.loadTexture('texture/fire.png');
+        var fireanimator = new TextureAnimator(fireTexture, 13, 1, 13, 120); // texture, #horiz, #vert, #total, duration.
+        var fireMaterial = new THREE.MeshBasicMaterial({ map: fireTexture, side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true });
+        var fireGeometry = new THREE.PlaneBufferGeometry(5, 8, 1, 1);
+        var fire = new THREE.Mesh(fireGeometry, fireMaterial);
+
+        fire.position.set(0, 1, 0);
+        scene.add(fire);
+        campfirelight.position = fire.position
+
+
+
+        var cameravector = new THREE.Vector3(camera.position.x, 0, camera.position.z);
+        for (var x = 0; x < 10; x++) {
+            var pinetreetexture = new THREE.ImageUtils.loadTexture('texture/pine.png');
+            var pinetreeMaterial = new THREE.MeshBasicMaterial({ map: pinetreetexture, side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true, depthTest: false });
+            var pinetreeGeometry = new THREE.PlaneBufferGeometry(5, 8, 1, 1);
+            var pinetree = new THREE.Mesh(pinetreeGeometry, pinetreeMaterial);
+            var pinetree2 = new THREE.Mesh(pinetreeGeometry, pinetreeMaterial);
+            var pinetree3 = new THREE.Mesh(pinetreeGeometry, pinetreeMaterial);
+            var pinetree4 = new THREE.Mesh(pinetreeGeometry, pinetreeMaterial);
+            var pinetree5 = new THREE.Mesh(pinetreeGeometry, pinetreeMaterial);
+            var pinetree6 = new THREE.Mesh(pinetreeGeometry, pinetreeMaterial);
+            var pinetree7 = new THREE.Mesh(pinetreeGeometry, pinetreeMaterial);
+            var pinetreesize = new THREE.Box3().setFromObject(pinetree);
+            pinetree2.rotation.set(0, 10, 0, 0);
+            pinetree3.rotation.set(0, 20, 0, 0);
+            pinetree4.rotation.set(0, 30, 0, 0);
+            pinetree5.rotation.set(0, 40, 0, 0);
+            pinetree6.rotation.set(0, 50, 0, 0);
+            pinetree7.rotation.set(0, 60, 0, 0);
+            
+            var limetreetexture = new THREE.ImageUtils.loadTexture('texture/lime.png');
+            var limetreeMaterial = new THREE.MeshBasicMaterial({ map: limetreetexture, gside: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true, depthWrite: false, depthTest: false });
+            var limetreeGeometry = new THREE.PlaneBufferGeometry(5, 8, 1, 1);
+            var limetree = new THREE.Mesh(limetreeGeometry, limetreeMaterial);
+            var limetree2 = new THREE.Mesh(limetreeGeometry, limetreeMaterial);
+            var limetree3 = new THREE.Mesh(limetreeGeometry, limetreeMaterial);
+            var limetree4 = new THREE.Mesh(limetreeGeometry, limetreeMaterial);
+            var limetree5 = new THREE.Mesh(limetreeGeometry, limetreeMaterial);
+            var limetree6 = new THREE.Mesh(limetreeGeometry, limetreeMaterial);
+            var limetree7 = new THREE.Mesh(limetreeGeometry, limetreeMaterial);
+            var limetreesize = new THREE.Box3().setFromObject(limetree);
+            limetree2.rotation.set(0, 10, 0, 0);
+            limetree3.rotation.set(0, 20, 0, 0);
+            limetree4.rotation.set(0, 30, 0, 0);
+            limetree5.rotation.set(0, 40, 0, 0);
+            limetree6.rotation.set(0, 50, 0, 0);
+            limetree7.rotation.set(0, 60, 0, 0);
+
+
+
+            var temppinex = 0, temppinez = 0, templimex = 0, templimez = 0;
+            var pinex = Math.floor((Math.random() * 40) + 1);
+            pinex *= Math.floor(Math.random() * 2) == 1 ? 1 : -1;
+            var pinez = Math.floor((Math.random() * 40) + 1);
+            
+            //check if pinetree,limetree or box collide
+            var limex = Math.floor((Math.random() * 40) + 1);
+            limex *= Math.floor(Math.random() * 2) == 1 ? 1 : -1;
+            var limez = Math.floor((Math.random() * 40) + 1);
+            
+
+            pinetree.position.set(pinex, 4, pinez);
+            scene.add(pinetree);
+            pinetree2.position.set(pinex, 4, pinez);
+            scene.add(pinetree2);
+            pinetree3.position.set(pinex, 4, pinez);
+            scene.add(pinetree3);
+            pinetree4.position.set(pinex, 4, pinez);
+            scene.add(pinetree4);
+            pinetree5.position.set(pinex, 4, pinez);
+            scene.add(pinetree5);
+            pinetree6.position.set(pinex, 4, pinez);
+            scene.add(pinetree6);
+            pinetree7.position.set(pinex, 4, pinez);
+            scene.add(pinetree7);
+
+            limetree.position.set(limex, 4, limez);
+            scene.add(limetree);
+            limetree2.position.set(limex, 4, limez);
+            scene.add(limetree2);
+            limetree3.position.set(limex, 4, limez);
+            scene.add(limetree3);
+            limetree4.position.set(limex, 4, limez);
+            scene.add(limetree4);
+            limetree5.position.set(limex, 4, limez);
+            scene.add(limetree5);
+            limetree6.position.set(limex, 4, limez);
+            scene.add(limetree6);
+            limetree7.position.set(limex, 4, limez);
+            scene.add(limetree7);
+
+        }
+                
+        function update() {
+            flashlight.position.set(camera.position.x + 0.5, camera.position.y - 0.9, camera.position.z - 0.7);
+            //SpotLight.position.set(flashlight.position.x, flashlight.position.y, flashlight.position.z - 2);
+            cameravector = new THREE.Vector3(cameraObject.position.x, 0, cameraObject.position.z);
+            cloud.rotateY(0.001);
+            SpotLight.target.position.set(0, 0, -1);
+            SpotLight.position.copy(camera.position);
+            fire.lookAt(cameravector);
+            
+            var moonspeed = Date.now();
+            var sunspeed = moonspeed + 100000;
+            var moonangle = moonspeed * speedScale;
+            var sunangle = sunspeed * speedScale;
+            moon.position.x = cx + Math.sin(moonangle) * rad;
+            moon.position.y = cy + Math.cos(moonangle) * rad;
+            moonlight.position.x = moon.position.x;
+            moonlight.position.y = moon.position.y;
+            sun.position.x = cx + Math.sin(sunangle) * rad;
+            sun.position.y = cy + Math.cos(sunangle) * rad;
+            sunlight.position.x = sun.position.x;
+            sunlight.position.y = sun.position.y;
+
+
+            var delta = clock.getDelta();
+            fireanimator.update(1000 * delta);
+           
+            ambiantlight.color.setHSL(0, 0, ambiantspeed);
+            if (moonlight.position.y <= 1)
+                moonlight.intensity = 0;
+            else
+                moonlight.intensity = 0.2;
+            if (sunlight.position.y <= 1)
+                sunlight.intensity = 0;
+            else
+                sunlight.intensity = 1;
+
+            if ((moon.position.x >= groundwidth / 2 && moon.position.y > 0) || (sun.position.x >= groundwidth / 2 && sun.position.y > 0))
+            {
+                if (ambiantspeed <= 0.0)
+                    ambiantspeed = 0.0;
+                else
+                    ambiantspeed = ambiantspeed - 0.0004;
+            }
+            else if (moon.position.y == 0 || sun.position.y == 0)
+            {
+                ambiantspeed = 0;
+            }
+            else
+                if (ambiantspeed >= 0.5)
+                    ambiantspeed = 0.5;
+                else
+                    ambiantspeed = ambiantspeed + 0.0004;
+            renderer.setClearColor(0x000000, 1.0);
+            renderer.clear(true);
+            renderer.render(scene, camera);
+            moving = false;
+            if (cameraObject.position.y <= ground.position.y + 1)
+            {
+                cameraObject.position.y = 1;
+            }
+            var dir = new THREE.Vector3(0, 0, -1);
+            if (keysPressed["W".charCodeAt(0)] == true) {
+                var dir = new THREE.Vector3(0, 0, -1);
+                var dirW = dir.applyMatrix4(camera.matrix);
+                cameraObject.position.y = 1.2;
+                cameraObject.translateZ(-speed);
+            }
+            if (keysPressed["S".charCodeAt(0)] == true) {
+                var dir = new THREE.Vector3(0, 0, -1);
+                var dirW = dir.applyMatrix4(camera.matrix);
+                cameraObject.translateZ(speed);
+                cameraObject.position.y = 1.2;
+            }
+            if (keysPressed["A".charCodeAt(0)] == true) {
+                cameraObject.rotateY(degInRad(angle));
+                //PointLight.rotateY(degInRad(angle));
+                //SpotLight.rotateY(degInRad(angle));
+            }
+            if (keysPressed["D".charCodeAt(0)] == true) {
+                cameraObject.rotateY(-degInRad(angle));
+                //PointLight.rotateY(-degInRad(angle));
+                //SpotLight.rotateY(-degInRad(angle));
+            }
+            if (keysPressed["E".charCodeAt(0)] == true) {
+                cameraObject.rotateX(degInRad(angle));
+                //PointLight.rotateX(degInRad(angle));
+                //SpotLight.rotateX(degInRad(angle));
+            }
+            if (keysPressed["Q".charCodeAt(0)] == true) {
+                cameraObject.rotateX(-degInRad(angle));
+                //PointLight.rotateX(-degInRad(angle));
+                //SpotLight.rotateX(-degInRad(angle));
+            }
+            if (keysPressed["R".charCodeAt(0)] == true) {
+                cameraObject.rotation.x = 0;
+                cameraObject.rotation.z = 0;
+            }/*
+            //SPACE BAR
+            if (keysPressed[32] == true) {
+                var dir = new THREE.Vector3(0, 0, -1);
+                var dirW = dir.applyMatrix4(camera.matrix);
+                //dir.applyQuaternion(camera.quaternion);
+                //camera.translate(-0.1, dirW);
+                camera.translateY(speed);
+                //camera.position.z -= speed;
+                //moving = true;
+            }
+            //SHIFT
+            if (keysPressed[16] == true) {
+                var dir = new THREE.Vector3(0, 0, -1);
+                var dirW = dir.applyMatrix4(camera.matrix);
+                //dir.applyQuaternion(camera.quaternion);
+                //camera.translate(0.1, dirW);
+                camera.translateY(-speed);
+                //camera.position.z += speed;
+                //moving = true;
+            }*/
+            // so strafing and moving back-fourth does not double the bounce
+            if (moving) {
+                movement += 0.1;
+                cameraObject.position.y = Math.sin(movement * 2.30) * 0.05 + cameraObject.position.y;
+            }
+
+            // request another frame update
+            requestAnimationFrame(update);
+
+        }
+    </script>
+</body>
+</html>
