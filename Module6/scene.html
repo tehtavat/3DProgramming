@@ -28,15 +28,13 @@
         }
         var keysPressed = [];
         var scene = new THREE.Scene();
-
+        var background = new THREE.Scene();
         var camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 100000);
         var camera2 = new THREE.PerspectiveCamera(75, width / height, 0.1, 100000);
-
-        var backgroundscene = new THREE.Scene();
-        backgroundscene.add(camera2);
         var cameraObject = new THREE.Object3D();
         cameraObject.add(camera);
         scene.add(cameraObject);
+        background.add(camera2);
 
         cameraObject.position.y = 1.2;
         cameraObject.position.z = 20;
@@ -68,33 +66,34 @@
             side: THREE.BackSide
         }),
         sky = new THREE.Mesh(new THREE.BoxGeometry(5000, 5000, 5000), material);
-        scene.add(sky);
+        background.add(sky);
         //hills for more realistic clouds
-        /*
+        
+
+                                                                    
+        var cloudTexture = new THREE.ImageUtils.loadTexture('texture/clouds2.png');
+        var cloudMaterial = new THREE.MeshBasicMaterial({ map: cloudTexture, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, transparent: true });
+        //realistic clouds use clouds2.png and this geometry
+        var cloudGeometry = new THREE.SphereGeometry(5000, 290, 290);
+        //var cloudGeometry = new THREE.CylinderGeometry(800, 800, 2, 800, 2);
+        var cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+        cloud.position.setY(300);
+        background.add(cloud);
+
         var path = "texture/hills/";
         var format = '.png';
         var cubematerial = [
-            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'hills_west' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
             new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'hills_east' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
+            new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'hills_west' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
             new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'transparent' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
             new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'transparent' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
             new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'hills_north' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true }),
             new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(path + 'hills_south' + format), side: THREE.DoubleSide, blending: THREE.NormalBlending, transparent: true })
         ];
         
-        var hills = new THREE.Mesh(new THREE.BoxGeometry(1000, 1000, 1000, 1, 1, 1), new THREE.MeshFaceMaterial(cubematerial));
-        scene.add(hills);
-        */
-                                                                    
-        var cloudTexture = new THREE.ImageUtils.loadTexture('texture/clouds.png');
-        var cloudMaterial = new THREE.MeshBasicMaterial({ map: cloudTexture, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, transparent: true });
-        //realistic clouds use clouds2.png and this geometry
-        //var cloudGeometry = new THREE.SphereGeometry(5000, 290, 290);
-        var cloudGeometry = new THREE.CylinderGeometry(800, 800, 2, 800, 2);
-        var cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
-        cloud.position.setY(300);
-        scene.add(cloud);
-
+        var hills = new THREE.Mesh(new THREE.BoxGeometry(3000, 3000, 3000, 1, 1, 1), new THREE.MeshFaceMaterial(cubematerial));
+        background.add(hills);
+        
 
         var onProgress = function (xhr) {
             if (xhr.lengthComputable) {
@@ -127,10 +126,8 @@
         cameraObject.add(PointLight);
         */
         var SpotLight = new THREE.SpotLight(0xffffff, 6, 30);
-        SpotLight.position.set(flashlight.position.x,flashlight.position.y,flashlight.position.z);
         camera.add(SpotLight.target);
-        SpotLight.target.position.set(0, 0, -1);
-        SpotLight.position.copy(camera.position);
+        SpotLight.position.copy(flashlight.position);
         //SpotLight.lookAt(new THREE.Vector3(cameraObject.position.x, cameraObject.position.y, cameraObject.position.z + 30));
         
         cameraObject.add(SpotLight);
@@ -192,6 +189,11 @@
         // setup input handling with keypresses
         document.onkeydown = function (event) {
             keysPressed[event.keyCode] = true;
+            if (event.keyCode == "E".charCodeAt(0))
+            if (!haspressed)
+                haspressed = true;
+            else
+                haspressed = false;
         }
         document.onkeyup = function (event) {
             keysPressed[event.keyCode] = false;
@@ -371,14 +373,14 @@
 
 
             var temppinex = 0, temppinez = 0, templimex = 0, templimez = 0;
-            var pinex = Math.floor((Math.random() * 40) + 1);
+            var pinex = Math.floor((Math.random() * 40) + 6);
             pinex *= Math.floor(Math.random() * 2) == 1 ? 1 : -1;
-            var pinez = Math.floor((Math.random() * 40) + 1);
+            var pinez = Math.floor((Math.random() * 40) + 6);
             
             //check if pinetree,limetree or box collide
-            var limex = Math.floor((Math.random() * 40) + 1);
+            var limex = Math.floor((Math.random() * 40) + 6);
             limex *= Math.floor(Math.random() * 2) == 1 ? 1 : -1;
-            var limez = Math.floor((Math.random() * 40) + 1);
+            var limez = Math.floor((Math.random() * 40) + 6);
             
 
             pinetree.position.set(pinex, 4, pinez);
@@ -412,12 +414,14 @@
             scene.add(limetree7);
 
         }
-                
+        renderer.autoClear = false;
+        var haspressed = false;
         function update() {
             flashlight.position.set(camera.position.x + 0.5, camera.position.y - 0.9, camera.position.z - 0.7);
             //SpotLight.position.set(flashlight.position.x, flashlight.position.y, flashlight.position.z - 2);
             cameravector = new THREE.Vector3(cameraObject.position.x, 0, cameraObject.position.z);
             cloud.rotateY(0.001);
+            cloud.rotateX(0.001);
             SpotLight.target.position.set(0, 0, -1);
             SpotLight.position.copy(camera.position);
             fire.lookAt(cameravector);
@@ -466,7 +470,9 @@
                 else
                     ambiantspeed = ambiantspeed + 0.0004;
             renderer.setClearColor(0x000000, 1.0);
-            renderer.clear(true);
+            renderer.clear();
+            renderer.render(background, camera2);
+            renderer.clearDepth();
             renderer.render(scene, camera);
             moving = false;
             if (cameraObject.position.y <= ground.position.y + 1)
@@ -488,14 +494,23 @@
             }
             if (keysPressed["A".charCodeAt(0)] == true) {
                 cameraObject.rotateY(degInRad(angle));
+                camera2.rotateY(degInRad(angle));
                 //PointLight.rotateY(degInRad(angle));
                 //SpotLight.rotateY(degInRad(angle));
             }
             if (keysPressed["D".charCodeAt(0)] == true) {
                 cameraObject.rotateY(-degInRad(angle));
+                camera2.rotateY(-degInRad(angle));
                 //PointLight.rotateY(-degInRad(angle));
                 //SpotLight.rotateY(-degInRad(angle));
             }
+            //in onkeydown event
+            if (!haspressed)
+                SpotLight.intensity = 0.0;
+
+            else
+                SpotLight.intensity = 6.0;
+            /*
             if (keysPressed["E".charCodeAt(0)] == true) {
                 cameraObject.rotateX(degInRad(angle));
                 //PointLight.rotateX(degInRad(angle));
@@ -509,7 +524,7 @@
             if (keysPressed["R".charCodeAt(0)] == true) {
                 cameraObject.rotation.x = 0;
                 cameraObject.rotation.z = 0;
-            }/*
+            }
             //SPACE BAR
             if (keysPressed[32] == true) {
                 var dir = new THREE.Vector3(0, 0, -1);
